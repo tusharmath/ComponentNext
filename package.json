@@ -1,0 +1,14 @@
+{
+  "name": "component-next",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Version0.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "monocle-ts": "^2.3.3"
+  }
+}
