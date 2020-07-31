@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+fp-ts@^2.7.1:
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.7.1.tgz#7bd754f3362f4b9bc4d272a97c0658e9a1bc16bc"
+  integrity sha512-rYy41jF1gVhBNYbPwup50dtyT686OKOoa86PXwh8aKpBRfmvPhnBh2zUkOYj84GIMSCsgY+oJ/RVhVKRvWNPTA==
+
 monocle-ts@^2.3.3:
   version "2.3.3"
   resolved "https://registry.yarnpkg.com/monocle-ts/-/monocle-ts-2.3.3.tgz#1e6d83dcf42bcb96b74fdda07813c2a47ec6cfa4"

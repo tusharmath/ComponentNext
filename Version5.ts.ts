@@ -100,6 +100,10 @@ class Component<S = unknown, A = never, V = never> {
   get typeA(): A {
     throw new Error('Invalid Access')
   }
+
+  lensProp<P extends keyof S>(propName: P): Lens<S, S[P]> {
+    return Lens.fromProp<S>()(propName)
+  }
 }
 
 // Component 1
@@ -120,17 +124,14 @@ export const c3 = Component.init({
   c2: c2.init()
 })
 
-const c1StateL = Lens.fromProp<typeof c3.typeS>()('c1')
 const c1Action = (A: C3Action) => (A.type === 'c1' ? some(A.value) : none)
-
-const c2StateL = Lens.fromProp<typeof c3.typeS>()('c2')
 const c2Action = (A: C3Action) => (A.type === 'c2' ? some(A.value) : none)
 
 // Installing Components
 const c3_ = c3
   .pipe(Component.accept<C3Action>())
-  .pipe(c1.install(c1StateL, c1Action))
-  .pipe(c2.install(c2StateL, c2Action))
+  .pipe(c1.install(c3.lensProp('c1'), c1Action))
+  .pipe(c2.install(c3.lensProp('c2'), c2Action))
 
 // TEST / EXPERIMENT
 
