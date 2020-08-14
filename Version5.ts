@@ -14,7 +14,7 @@ const Empty: Empty = { tag: ListTag.Empty }
 type Value<A> = { tag: ListTag.Value; head: A; tail: List<A> }
 type List<A> = Empty | Value<A>
 
-class Installation<A0, S0, A1, S1, V> {
+class Installation<A0 extends AnyAction, S0, A1 extends AnyAction, S1, V> {
   constructor(
     private readonly _component: Component<S1, A1, V>,
     private readonly _lens: Lens<S0, S1>,
@@ -26,15 +26,16 @@ class Installation<A0, S0, A1, S1, V> {
   }
 }
 
-class Action<T extends string | number, V> {
-  constructor(readonly type: T, readonly value: V) {}
+type Action<T extends string | number, V> = {
+  type: T
+  value: V
 }
 
 type AnyAction = Action<string | number, unknown>
 
 declare function h(name: string, children: unknown[]): string
 
-class Component<S = unknown, A = never, V = never> {
+class Component<S = unknown, A extends AnyAction = never, V = never> {
   constructor(
     private _state: S,
     private _listU: List<(A: A, S: S) => S>,
@@ -65,7 +66,7 @@ class Component<S = unknown, A = never, V = never> {
     return this._view(S)
   }
 
-  public pipe<S1, A1>(f: (c: Component<S, A, V>) => Component<S1, A1, V>): Component<S1, A1, V> {
+  public pipe<S1, A1 extends AnyAction>(f: (c: Component<S, A, V>) => Component<S1, A1, V>): Component<S1, A1, V> {
     return f(this)
   }
 
@@ -73,25 +74,40 @@ class Component<S = unknown, A = never, V = never> {
     return new Component(S0, Empty, Empty, () => undefined)
   }
 
-  static update = <A0, S0>(F: (A: A0, S: S0) => S0) => <V1>(C1: Component<S0, A0, V1>): Component<S0, A0, V1> => {
+  static update = <A0 extends AnyAction, S0>(F: (A: A0, S: S0) => S0) => <V1>(
+    C1: Component<S0, A0, V1>
+  ): Component<S0, A0, V1> => {
     return new Component(C1._state, { tag: ListTag.Value, tail: C1._listU, head: F }, C1._listC, C1._view)
   }
 
-  static accept = <A0>() => <S1, A1, V1>(C1: Component<S1, A1, V1>): Component<S1, A0, V1> => {
+  static accept = <A0 extends AnyAction>() => <S1, A1 extends AnyAction, V1>(
+    C1: Component<S1, A1, V1>
+  ): Component<S1, A0, V1> => {
     return new Component(C1._state, Empty, Empty, C1._view)
   }
 
-  static install<A, S>(F: (A: A, S: S) => S): <V>(C: Component<S, A, V>) => Component<S, A, V> {
+  static install<A extends AnyAction, S>(F: (A: A, S: S) => S): <V>(C: Component<S, A, V>) => Component<S, A, V> {
     return C =>
       new Component(C._state, { tag: ListTag.Value, tail: C._listU, head: (A, S) => F(A, S) }, C._listU, C._view)
   }
 
-  installer<A0, S0>(lens: Lens<S0, S>, sel: (A0: A0) => Option<A>): (A0: A0, S0: S0) => S0 {
+  installer<A0 extends AnyAction, S0>(lens: Lens<S0, S>, sel: (A0: A0) => Option<A>): (A0: A0, S0: S0) => S0 {
     return (A0, S0) => new Installation(this, lens, sel).update(A0, S0)
   }
 
-  install<A0, S0>(lens: Lens<S0, S>, sel: (A0: A0) => Option<A>): (C: Component<S0, A0, V>) => Component<S0, A0, V> {
+  install<A0 extends AnyAction, S0>(
+    lens: Lens<S0, S>,
+    sel: (A0: A0) => Option<A>
+  ): (C: Component<S0, A0, V>) => Component<S0, A0, V> {
     return Component.install((A0, S0) => new Installation(this, lens, sel).update(A0, S0))
+  }
+  install0<A0 extends AnyAction, S0, N extends string | number>(
+    N: N,
+    lens: Lens<S0, S>
+  ): (C: Component<S0, A0 | Action<N, A>, V>) => Component<S0, A0 | Action<N, A>, V> {
+    return Component.install((A0, S0) =>
+      new Installation(this, lens, A => (A.type === N ? some(A.value) : none)).update(A0, S0)
+    )
   }
 
   get typeS(): S {
@@ -105,7 +121,6 @@ class Component<S = unknown, A = never, V = never> {
     return Lens.fromProp<S>()(propName)
   }
 }
-
 // Component 1
 type C1Action = Action<'c1_1', number> | Action<'c1_2', number>
 export const c1 = Component.init({ C1: 10 })
@@ -122,17 +137,12 @@ export const c3 = Component.init({
   node: { color: 'RED' },
   c1: c1.init(),
   c2: c2.init()
-})
-
-const c1Action = (A: C3Action) => (A.type === 'c1' ? some(A.value) : none)
-const c2Action = (A: C3Action) => (A.type === 'c2' ? some(A.value) : none)
+}).pipe(Component.accept<C3Action>())
 
 // Installing Components
 const c3_ = c3
-  .pipe(Component.accept<C3Action>())
-  .pipe(c1.install(c3.lensProp('c1'), c1Action))
-  .pipe(c2.install(c3.lensProp('c2'), c2Action))
+  .pipe(c1.install(c3.lensProp('c1'), A => (A.type === 'c1' ? some(A.value) : none)))
+  .pipe(c2.install(c3.lensProp('c2'), A => (A.type === 'c2' ? some(A.value) : none)))
 
 // TEST / EXPERIMENT
-
 console.log(c3_.update({ type: 'c1', value: { type: 'c1_1', value: 1000 } }, c3_.init()))
